@@ -1,0 +1,577 @@
+HTML
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulador de Automação Industrial - Saeco Aulika</title>
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @keyframes streamFlow {
+      0% { opacity: 0.6; transform: translateY(-5px) scaleX(0.8); }
+      50% { opacity: 1; transform: translateY(0) scaleX(1); }
+      100% { opacity: 0.6; transform: translateY(5px) scaleX(0.8); }
+    }
+    .animate-stream {
+      animation: streamFlow 0.3s infinite linear;
+    }
+    .lcd-screen {
+      background-color: #0044ff;
+      box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.7), 0 0 10px rgba(0, 100, 255, 0.5);
+    }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen p-4 md:p-8 font-sans">
+
+  <div class="max-w-6xl mx-auto space-y-6">
+    
+    <!-- Cabeçalho Pedagógico MSEP -->
+    <header class="bg-slate-800 border border-slate-700 rounded-xl p-6 shadow-xl">
+      <div class="flex flex-wrap justify-between items-center gap-4">
+        <div>
+          <span class="bg-blue-600 text-xs uppercase px-3 py-1 rounded-full font-bold tracking-wider text-white">Metodologia MSEP</span>
+          <h1 class="text-2xl md:text-3xl font-extrabold text-white mt-2">Simulador da Máquina de Café Saeco Aulika</h1>
+          <p class="text-slate-400 text-sm mt-1">Laboratório Virtual de Engenharia de Automação e Software Industrial</p>
+        </div>
+        <div class="flex items-center space-x-3 bg-slate-900/80 px-4 py-2 rounded-lg border border-slate-700">
+          <button id="btnSoundToggle" onclick="toggleAudio()" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 rounded text-xs font-semibold transition">
+            🔊 Áudio: <span id="soundStatusText">ATIVADO</span>
+          </button>
+          <button onclick="resetSystem()" class="px-3 py-1.5 bg-rose-700 hover:bg-rose-600 rounded text-xs font-semibold transition">
+            🔄 Reiniciar Sistema
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Layout Principal: Painel do Equipamento + Telemetria -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+      <!-- COLUNA DA ESQUERDA: Estrutura Física e Painel de Controle (7 colunas) -->
+      <div class="lg:col-span-7 bg-gradient-to-b from-slate-800 to-slate-950 border border-slate-700 rounded-xl p-6 shadow-2xl relative">
+        <div class="text-xs text-slate-500 font-mono mb-4 flex justify-between items-center border-b border-slate-700/60 pb-2">
+          <span>PAINEL FÍSICO - SAECO AULIKA</span>
+          <span class="text-emerald-400 font-semibold flex items-center gap-1">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span> ONLINE
+          </span>
+        </div>
+
+        <!-- Carcaça Superior com Reservatórios -->
+        <div class="grid grid-cols-2 gap-2 mb-4 opacity-80">
+          <div class="bg-slate-950/80 border border-slate-700 h-16 rounded-t-lg flex items-center justify-center text-xs text-slate-500 font-mono">
+            Reservatório Água
+          </div>
+          <div class="bg-slate-950/80 border border-slate-700 h-16 rounded-t-lg flex items-center justify-center text-xs text-slate-500 font-mono">
+            Grãos de Café
+          </div>
+        </div>
+
+        <!-- Moldura Metalizada Central do Painel -->
+        <div class="bg-gradient-to-b from-slate-300 via-slate-400 to-slate-500 p-6 rounded-lg shadow-inner text-slate-900 border border-slate-200">
+          
+          <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+            
+            <!-- LCD central -->
+            <div class="md:col-span-6 flex flex-col items-center">
+              <div class="lcd-screen w-full h-28 rounded-lg border-4 border-slate-800 p-3 flex flex-col justify-between text-cyan-100 font-mono relative overflow-hidden">
+                <div class="flex justify-between text-[11px] border-b border-cyan-400/30 pb-1">
+                  <span id="lcdHeaderLeft" class="font-bold">PRONTO</span>
+                  <span id="lcdHeaderRight">88°C 🌡️</span>
+                </div>
+                
+                <div id="lcdMessage" class="text-center my-auto text-xs md:text-sm font-semibold tracking-wide text-white">
+                  SELECCIONAR BEBIDA
+                </div>
+
+                <div id="lcdBarContainer" class="w-full bg-blue-950 rounded-full h-2 border border-cyan-400/40 hidden overflow-hidden">
+                  <div id="lcdProgressBar" class="bg-cyan-300 h-full w-0 transition-all duration-100"></div>
+                </div>
+
+                <div class="flex justify-between text-[10px] text-cyan-300">
+                  <span id="lcdDoseText">DOSE: MÉDIA</span>
+                  <span id="lcdStatusCounter">TOTAL: 0</span>
+                </div>
+              </div>
+              <div class="mt-2 text-[10px] text-slate-800 font-mono font-bold tracking-widest">
+                SAECO AULIKA IHM
+              </div>
+            </div>
+
+            <!-- Matriz de Botões de Controlo (Direita) -->
+            <div class="md:col-span-6 grid grid-cols-2 gap-2">
+              
+              <!-- Café Curto -->
+              <div class="flex flex-col items-center">
+                <button onclick="handleButtonPress('curto')" class="w-full bg-slate-800 hover:bg-slate-700 active:bg-slate-900 text-white text-xs font-bold py-3 px-2 rounded border-b-4 border-slate-950 shadow active:translate-y-0.5 transition flex flex-col items-center gap-1">
+                  <span class="text-lg">☕</span>
+                  <span>CAFÉ CURTO</span>
+                </button>
+                <span class="text-[9px] text-slate-800 font-mono mt-0.5">DI_01</span>
+              </div>
+
+              <!-- Café Longo -->
+              <div class="flex flex-col items-center">
+                <button onclick="handleButtonPress('longo')" class="w-full bg-slate-800 hover:bg-slate-700 active:bg-slate-900 text-white text-xs font-bold py-3 px-2 rounded border-b-4 border-slate-950 shadow active:translate-y-0.5 transition flex flex-col items-center gap-1">
+                  <span class="text-lg">🥛</span>
+                  <span>CAFÉ LONGO</span>
+                </button>
+                <span class="text-[9px] text-slate-800 font-mono mt-0.5">DI_02</span>
+              </div>
+
+              <!-- Dose / Intensidade -->
+              <div class="flex flex-col items-center">
+                <button onclick="handleButtonPress('dose')" class="w-full bg-slate-700 hover:bg-slate-600 active:bg-slate-800 text-white text-[11px] font-bold py-2 px-1 rounded border-b-4 border-slate-900 shadow active:translate-y-0.5 transition flex flex-col items-center">
+                  <span class="text-sm">🫘</span>
+                  <span>DOSE / AROMA</span>
+                </button>
+                <span class="text-[9px] text-slate-800 font-mono mt-0.5">DI_03</span>
+              </div>
+
+              <!-- Menu / Configuração -->
+              <div class="flex flex-col items-center">
+                <button onclick="handleButtonPress('menu')" class="w-full bg-slate-700 hover:bg-slate-600 active:bg-slate-800 text-white text-[11px] font-bold py-2 px-1 rounded border-b-4 border-slate-900 shadow active:translate-y-0.5 transition flex flex-col items-center">
+                  <span class="text-sm">⚙️</span>
+                  <span>MENU</span>
+                </button>
+                <span class="text-[9px] text-slate-800 font-mono mt-0.5">DI_04</span>
+              </div>
+
+              <!-- Água Quente -->
+              <div class="flex flex-col items-center">
+                <button onclick="handleButtonPress('agua')" class="w-full bg-cyan-800 hover:bg-cyan-700 active:bg-cyan-900 text-white text-[11px] font-bold py-2 px-1 rounded border-b-4 border-cyan-950 shadow active:translate-y-0.5 transition flex flex-col items-center">
+                  <span class="text-sm">🫖</span>
+                  <span>ÁGUA QUENTE</span>
+                </button>
+                <span class="text-[9px] text-slate-800 font-mono mt-0.5">DI_05</span>
+              </div>
+
+              <!-- Cancelar -->
+              <div class="flex flex-col items-center">
+                <button onclick="handleButtonPress('cancelar')" class="w-full bg-rose-800 hover:bg-rose-700 active:bg-rose-900 text-white text-[11px] font-bold py-2 px-1 rounded border-b-4 border-rose-950 shadow active:translate-y-0.5 transition flex flex-col items-center">
+                  <span class="text-sm">🚫</span>
+                  <span>CANCELAR</span>
+                </button>
+                <span class="text-[9px] text-slate-800 font-mono mt-0.5">DI_06</span>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+        <!-- Zona Inferior: Mecânica do Copo e Fluxo dos Fluidos -->
+        <div class="mt-8 bg-slate-950 rounded-lg p-4 border border-slate-800 relative h-64 overflow-hidden flex flex-col justify-between">
+          <div class="text-[10px] font-mono text-slate-500">ZONA DE EXTRACÇÃO E DISPENSAÇÃO MECÂNICA</div>
+          
+          <!-- Bocais de saída -->
+          <div class="relative w-full h-12 flex justify-between px-12 items-top border-b border-slate-800">
+            <!-- Saída de Água Quente (Esquerda) -->
+            <div class="flex flex-col items-center w-16">
+              <div class="w-4 h-6 bg-slate-400 rounded-b shadow"></div>
+              <div class="text-[9px] text-cyan-400 font-mono mt-1">Bico Água</div>
+              <!-- Fluxo de Água -->
+              <div id="waterStream" class="w-2 bg-cyan-300/80 rounded-b h-28 hidden animate-stream shadow-lg shadow-cyan-500/50"></div>
+            </div>
+
+            <!-- Saída Central de Café -->
+            <div class="flex flex-col items-center w-24">
+              <div class="w-12 h-8 bg-slate-300 rounded-b shadow border-t-2 border-slate-500 flex justify-center items-center">
+                <span class="text-[8px] text-slate-800 font-bold">SAEC</span>
+              </div>
+              <div class="text-[9px] text-amber-500 font-mono mt-1">Dispenser Café</div>
+              <!-- Fluxo de Café -->
+              <div id="coffeeStream" class="w-3 bg-amber-900 rounded-b h-24 hidden animate-stream shadow-lg shadow-amber-950"></div>
+            </div>
+
+            <div class="w-16"></div> <!-- Espaçador visual -->
+          </div>
+
+          <!-- Base e Copo Deslizante -->
+          <div class="relative w-full h-32 bg-slate-900 border-t border-slate-800 rounded-b flex items-end px-12 pb-2">
+            
+            <!-- Copo Interativo com animação de Posição CSS -->
+            <div id="glassCup" class="absolute bottom-2 left-1/2 -translate-x-1/2 w-14 h-24 border-2 border-slate-400/60 rounded-b-xl bg-slate-800/30 backdrop-blur-sm transition-all duration-700 ease-in-out flex flex-col justify-end p-1 overflow-hidden shadow-lg">
+              <!-- Fluido do copo -->
+              <div id="liquidFill" class="w-full bg-amber-900/90 rounded-b-lg transition-all duration-200 h-0 flex items-center justify-center">
+                <span id="liquidLabel" class="text-[8px] text-amber-100 font-bold opacity-0"></span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+
+      <!-- COLUNA DA DIREITA: Telemetria MSEP & Painel de Desafios (5 colunas) -->
+      <div class="lg:col-span-5 space-y-6">
+
+        <!-- Telemetria de E/S e Sensores -->
+        <div class="bg-slate-800 border border-slate-700 rounded-xl p-5 shadow-xl">
+          <h2 class="text-sm font-bold text-slate-200 uppercase tracking-wider mb-4 flex items-center gap-2">
+            <span>📡</span> Telemetria do PLC / Entradas e Saídas
+          </h2>
+
+          <!-- Entradas Digitais -->
+          <div class="mb-4">
+            <span class="text-xs text-slate-400 font-mono block mb-2">ENTRADAS DIGITAIS (DI)</span>
+            <div class="grid grid-cols-3 gap-2">
+              <div id="indicator_DI_01" class="bg-slate-900 p-2 rounded border border-slate-700 text-center">
+                <div class="text-[10px] text-slate-400 font-mono">DI_01 (Curto)</div>
+                <div class="text-xs font-bold text-slate-500 status-text">OFF</div>
+              </div>
+              <div id="indicator_DI_02" class="bg-slate-900 p-2 rounded border border-slate-700 text-center">
+                <div class="text-[10px] text-slate-400 font-mono">DI_02 (Longo)</div>
+                <div class="text-xs font-bold text-slate-500 status-text">OFF</div>
+              </div>
+              <div id="indicator_DI_05" class="bg-slate-900 p-2 rounded border border-slate-700 text-center">
+                <div class="text-[10px] text-slate-400 font-mono">DI_05 (Água)</div>
+                <div class="text-xs font-bold text-slate-500 status-text">OFF</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Atuadores / Saídas (DO) e Sensores Analógicos -->
+          <div class="space-y-3 font-mono text-xs">
+            <div>
+              <div class="flex justify-between text-slate-400 mb-1">
+                <span>Pressão da Bomba (Bar)</span>
+                <span id="valPressure" class="text-cyan-400 font-bold">0.0 Bar</span>
+              </div>
+              <div class="w-full bg-slate-900 rounded-full h-2">
+                <div id="barPressure" class="bg-cyan-500 h-2 rounded-full w-0 transition-all duration-300"></div>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-700/60">
+              <div class="bg-slate-900 p-2 rounded border border-slate-700">
+                <span class="text-slate-500 text-[10px]">MOEDOR (DO_01)</span>
+                <div id="statusGrinder" class="text-slate-400 font-bold mt-1">INATIVO</div>
+              </div>
+              <div class="bg-slate-900 p-2 rounded border border-slate-700">
+                <span class="text-slate-500 text-[10px]">VÁLVULA ÁGUA (DO_02)</span>
+                <div id="statusValve" class="text-slate-400 font-bold mt-1">FECHADA</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Módulo Pedagógico MSEP - Diagnóstico e Falhas -->
+        <div class="bg-slate-800 border border-slate-700 rounded-xl p-5 shadow-xl">
+          <h2 class="text-sm font-bold text-amber-400 uppercase tracking-wider mb-2 flex items-center gap-2">
+            <span>🎓</span> Módulo MSEP: Diagnóstico de Falhas
+          </h2>
+          <p class="text-xs text-slate-400 mb-4">
+            Responda e teste os cenários abaixo simulando situações reais de manutenção industrial.
+          </p>
+
+          <div class="space-y-3">
+            <div class="p-3 bg-slate-900 rounded-lg border border-slate-700 text-xs">
+              <p class="font-semibold text-slate-200 mb-2">Desafio 1: O botão Água Quente foi acionado mas a pressão não sobe.</p>
+              <button onclick="runDiagnostic(1)" class="w-full bg-amber-600/30 hover:bg-amber-600/50 text-amber-200 border border-amber-500/50 rounded py-1.5 font-semibold transition">
+                🔍 Iniciar Teste de Diagnóstico
+              </button>
+            </div>
+
+            <div id="diagnosticOutput" class="p-3 bg-slate-950 rounded border border-slate-800 text-xs text-slate-300 font-mono hidden">
+              <!-- Resultado do teste aparece aqui -->
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <!-- SCRIPT DE LÓGICA E AUTOMAÇÃO INTEGRADO -->
+  <script>
+    // --- ESTADO DO SISTEMA ---
+    let systemState = {
+      isBusy: false,
+      audioEnabled: true,
+      currentDose: 2, // 1: Suave, 2: Média, 3: Forte
+      totalDrinks: 0,
+      activeProcess: null,
+      faultSimulated: false
+    };
+
+    // --- SINTETIZADOR DE ÁUDIO WEB AUDIO API ---
+    let audioCtx = null;
+
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+    }
+
+    function playBeep(freq = 800, duration = 0.1) {
+      if (!systemState.audioEnabled) return;
+      initAudio();
+      try {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch (e) {}
+    }
+
+    function toggleAudio() {
+      systemState.audioEnabled = !systemState.audioEnabled;
+      document.getElementById('soundStatusText').innerText = systemState.audioEnabled ? 'ATIVADO' : 'DESATIVADO';
+    }
+
+    // --- GERENCIAMENTO DE BOTÕES E ENTRADAS ---
+    function handleButtonPress(action) {
+      playBeep(900, 0.08);
+
+      if (action === 'cancelar') {
+        cancelProcess();
+        return;
+      }
+
+      if (systemState.isBusy) {
+        updateLCD("MAQUINA OCUPADA", "AGUARDE...");
+        return;
+      }
+
+      switch (action) {
+        case 'curto':
+          triggerDrinkProcess('curto');
+          break;
+        case 'longo':
+          triggerDrinkProcess('longo');
+          break;
+        case 'agua':
+          triggerWaterProcess();
+          break;
+        case 'dose':
+          cycleDose();
+          break;
+        case 'menu':
+          toggleMenu();
+          break;
+      }
+    }
+
+    function setDigitalInput(di, active) {
+      const el = document.getElementById(`indicator_${di}`);
+      if (!el) return;
+      const statusTxt = el.querySelector('.status-text');
+      if (active) {
+        el.classList.remove('bg-slate-900', 'border-slate-700');
+        el.classList.add('bg-emerald-950', 'border-emerald-500');
+        statusTxt.innerText = 'ON';
+        statusTxt.classList.replace('text-slate-500', 'text-emerald-400');
+      } else {
+        el.classList.remove('bg-emerald-950', 'border-emerald-500');
+        el.classList.add('bg-slate-900', 'border-slate-700');
+        statusTxt.innerText = 'OFF';
+        statusTxt.classList.replace('text-emerald-400', 'text-slate-500');
+      }
+    }
+
+    // --- PROCESSO 1: ÁGUA QUENTE ---
+    function triggerWaterProcess() {
+      systemState.isBusy = true;
+      setDigitalInput('DI_05', true);
+
+      // 1. Move o copo para a Esquerda
+      const cup = document.getElementById('glassCup');
+      cup.style.left = '18%'; // Posição abaixo do bico de água
+      
+      resetCupLiquid();
+      updateLCD("AGUA QUENTE", "A MOVER COPO...");
+
+      setTimeout(() => {
+        // 2. Ativa Saída de Água e Telemetria
+        document.getElementById('waterStream').classList.remove('hidden');
+        document.getElementById('statusValve').innerText = 'ABERTA';
+        document.getElementById('statusValve').className = 'text-cyan-400 font-bold mt-1';
+        setPressure(3.5);
+
+        updateLCD("DISPENSANDO...", "AGUA QUENTE");
+        showProgressBar(true);
+
+        // 3. Enche o Copo
+        fillCup('cyan', 'Água Quente', 4000, () => {
+          // 4. Conclusão do processo
+          document.getElementById('waterStream').classList.add('hidden');
+          document.getElementById('statusValve').innerText = 'FECHADA';
+          document.getElementById('statusValve').className = 'text-slate-400 font-bold mt-1';
+          setPressure(0);
+          setDigitalInput('DI_05', false);
+          
+          updateLCD("CONCLUIDO!", "RETIRE O COPO");
+          showProgressBar(false);
+
+          setTimeout(() => {
+            resetSystemPosition();
+          }, 3000);
+        });
+
+      }, 800);
+    }
+
+    // --- PROCESSO 2: CAFÉ CURTO OU LONGO ---
+    function triggerDrinkProcess(type) {
+      systemState.isBusy = true;
+      const isCurto = type === 'curto';
+      setDigitalInput(isCurto ? 'DI_01' : 'DI_02', true);
+
+      const cup = document.getElementById('glassCup');
+      cup.style.left = '50%'; // Posição central abaixo do dispenser de café
+
+      resetCupLiquid();
+      updateLCD("MOENDO CAFE...", "Aguarde");
+
+      // Simula Moedor
+      document.getElementById('statusGrinder').innerText = 'ATIVO';
+      document.getElementById('statusGrinder').className = 'text-amber-400 font-bold mt-1';
+      playBeep(300, 0.5);
+
+      setTimeout(() => {
+        document.getElementById('statusGrinder').innerText = 'INATIVO';
+        document.getElementById('statusGrinder').className = 'text-slate-400 font-bold mt-1';
+        
+        updateLCD("EXTRACAO CAFE", isCurto ? "ESPRESSO CURTO" : "ESPRESSO LONGO");
+        document.getElementById('coffeeStream').classList.remove('hidden');
+        setPressure(14.8);
+        showProgressBar(true);
+
+        const duration = isCurto ? 3500 : 6000;
+        const drinkLabel = isCurto ? 'Café Curto' : 'Café Longo';
+
+        fillCup('amber', drinkLabel, duration, () => {
+          document.getElementById('coffeeStream').classList.add('hidden');
+          setPressure(0);
+          setDigitalInput(isCurto ? 'DI_01' : 'DI_02', false);
+          
+          systemState.totalDrinks++;
+          document.getElementById('lcdStatusCounter').innerText = `TOTAL: ${systemState.totalDrinks}`;
+
+          updateLCD("PRONTO!", "AFASTE O COPO");
+          showProgressBar(false);
+
+          setTimeout(() => {
+            resetSystemPosition();
+          }, 3000);
+        });
+
+      }, 1500);
+    }
+
+    // --- FUNÇÕES AUXILIARES DE ANIMAÇÃO DE LIQUIDO ---
+    function fillCup(colorType, labelText, durationMs, onComplete) {
+      const fillEl = document.getElementById('liquidFill');
+      const labelEl = document.getElementById('liquidLabel');
+      
+      fillEl.className = colorType === 'cyan' 
+        ? 'w-full bg-cyan-500/80 rounded-b-lg transition-all duration-200 flex items-center justify-center'
+        : 'w-full bg-amber-950/90 rounded-b-lg transition-all duration-200 flex items-center justify-center';
+
+      labelEl.innerText = labelText;
+      labelEl.classList.remove('opacity-0');
+
+      let startTime = Date.now();
+      let timer = setInterval(() => {
+        let elapsed = Date.now() - startTime;
+        let progress = Math.min(elapsed / durationMs, 1);
+        
+        fillEl.style.height = `${progress * 85}%`;
+        updateProgressBar(progress * 100);
+
+        if (progress >= 1) {
+          clearInterval(timer);
+          if (onComplete) onComplete();
+        }
+      }, 50);
+    }
+
+    function resetCupLiquid() {
+      const fillEl = document.getElementById('liquidFill');
+      const labelEl = document.getElementById('liquidLabel');
+      fillEl.style.height = '0%';
+      labelEl.classList.add('opacity-0');
+    }
+
+    function resetSystemPosition() {
+      const cup = document.getElementById('glassCup');
+      cup.style.left = '50%';
+      resetCupLiquid();
+      systemState.isBusy = false;
+      updateLCD("PRONTO", "SELECCIONAR BEBIDA");
+    }
+
+    function setPressure(barVal) {
+      document.getElementById('valPressure').innerText = `${barVal.toFixed(1)} Bar`;
+      const pct = (barVal / 15) * 100;
+      document.getElementById('barPressure').style.width = `${pct}%`;
+    }
+
+    function updateLCD(topText, bottomText) {
+      document.getElementById('lcdHeaderLeft').innerText = topText;
+      document.getElementById('lcdMessage').innerText = bottomText;
+    }
+
+    function showProgressBar(show) {
+      const container = document.getElementById('lcdBarContainer');
+      if (show) container.classList.remove('hidden');
+      else container.classList.add('hidden');
+    }
+
+    function updateProgressBar(pct) {
+      document.getElementById('lcdProgressBar').style.width = `${pct}%`;
+    }
+
+    function cycleDose() {
+      systemState.currentDose = (systemState.currentDose % 3) + 1;
+      const names = { 1: "DOSE: SUAVE", 2: "DOSE: MÉDIA", 3: "DOSE: FORTE" };
+      document.getElementById('lcdDoseText').innerText = names[systemState.currentDose];
+    }
+
+    function toggleMenu() {
+      updateLCD("MENU TECNICO", "TEMP: 88C | V1.04");
+      setTimeout(() => {
+        if (!systemState.isBusy) updateLCD("PRONTO", "SELECCIONAR BEBIDA");
+      }, 2500);
+    }
+
+    function cancelProcess() {
+      document.getElementById('waterStream').classList.add('hidden');
+      document.getElementById('coffeeStream').classList.add('hidden');
+      setPressure(0);
+      showProgressBar(false);
+      setDigitalInput('DI_01', false);
+      setDigitalInput('DI_02', false);
+      setDigitalInput('DI_05', false);
+      updateLCD("CANCELADO!", "SISTEMA REINICIADO");
+      setTimeout(() => {
+        resetSystemPosition();
+      }, 1500);
+    }
+
+    function resetSystem() {
+      cancelProcess();
+      systemState.totalDrinks = 0;
+      document.getElementById('lcdStatusCounter').innerText = "TOTAL: 0";
+    }
+
+    // --- MÓDULO MSEP: DIAGNÓSTICO DE FALHAS ---
+    function runDiagnostic(id) {
+      const out = document.getElementById('diagnosticOutput');
+      out.classList.remove('hidden');
+      out.innerHTML = `
+        <span class="text-amber-400 font-bold">ANÁLISE DE AUTOMAÇÃO:</span><br>
+        1. Verificar sinal de entrada DI_05 no módulo do PLC.<br>
+        2. Testar solenoide de acionamento da válvula DO_02.<br>
+        3. Caso a bomba não pressurize (0.0 Bar), inspecionar sensor de fluxo ou calcificação do termobloco.
+      `;
+    }
+  </script>
+</body>
+</html>
